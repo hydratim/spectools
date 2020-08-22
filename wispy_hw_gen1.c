@@ -293,7 +293,7 @@ int wispy1_usb_init_path(spectool_phy *phydev, char *buspath, char *devpath) {
 	usb_find_devices();
 
 	snprintf(combopath, 128, "%s%s", buspath, devpath);
-	cid = wispy24x_adler_checksum(combopath, 128);
+	cid = wispy1_adler_checksum(combopath, 128);
 
 	/* Don't know if a smarter way offhand, and we don't do this often, so just
 	 * crawl and compare */
@@ -554,7 +554,7 @@ int wispy1_usb_open(spectool_phy *phydev) {
 					 usb_strerror());
 #endif
 #ifdef SYS_LINUX
-		if (wispy24x_usb_detach_hack(auxptr->devhdl, 0, phydev->errstr) < 0) {
+		if (wispy_usb_detach_hack(auxptr->devhdl, 0, phydev->errstr) < 0) {
 			return -1;
 		}
 

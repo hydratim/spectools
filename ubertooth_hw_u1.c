@@ -263,7 +263,7 @@ int ubertooth_u1_device_scan(spectool_device_list *list) {
 
 				/* Fill in the list elements */
 				list->list[list->num_devs].device_id = 
-					wispy24x_adler_checksum(combopath, 128);
+					ubertooth_u1_adler_checksum(combopath, 128);
 				snprintf(list->list[list->num_devs].name, SPECTOOL_PHY_NAME_MAX,
 						 "Ubertooth One USB %u", list->list[list->num_devs].device_id);
 
