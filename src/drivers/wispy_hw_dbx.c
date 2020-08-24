@@ -12,7 +12,7 @@
  * Extra thanks to all @ Metageek for interface documentation
  */
 
-#include "config.h"
+#include "../config.h"
 
 #include <stdio.h>
 #include <stdint.h>

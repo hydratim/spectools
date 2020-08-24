@@ -13,7 +13,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "config.h"
 #include "spectool_container.h"
 #include "wispy_hw_gen1.h"
 #include "wispy_hw_24x.h"

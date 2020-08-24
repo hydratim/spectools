@@ -23,7 +23,7 @@
  * Extra thanks to Ryan Woodings @ Metageek for interface documentation
  */
 
-#include "config.h"
+#include "../config.h"
 
 #include <stdio.h>
 #include <stdint.h>

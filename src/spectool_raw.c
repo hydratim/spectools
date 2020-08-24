@@ -20,20 +20,17 @@
  */
 
 #include <stdio.h>
-#include <usb.h>
 #include <stdlib.h>
 #include <signal.h>
 #include <getopt.h>
 #include <string.h>
 #include <sys/select.h>
-#include <sys/time.h>
-#include <sys/types.h>
 #include <unistd.h>
 #include <errno.h>
 
-#include "config.h"
+//#include "config.h"
 
-#include "spectool_container.h"
+#include "drivers/spectool_container.h"
 #include "spectool_net_client.h"
 
 spectool_phy *devs = NULL;
@@ -52,6 +49,8 @@ void Usage(void) {
 		   " -n / --net  tcp://host:port  Connect to network server instead of\n"
 		   " -b / --broadcast             Listen for (and connect to) broadcast servers\n"
 		   " -l / --list				  List devices and ranges only\n"
+		   " -j / --json                  Output as json in the format: {\"device\": device_name, \"freq_range\": [low, high], \"sample_res\": sample_res, \"samples\": n_samples, \"values\": *values} \n"
+           " -c / --csv                   Output as csv in the format: device_name, freq_range, sample_res, n_samples, *values\n"
 		   " -r / --range [device:]range  Configure a device for a specific range\n"
 		   "                              local USB devices\n");
 	return;
@@ -70,6 +69,8 @@ int main(int argc, char *argv[]) {
 		{ "net", required_argument, 0, 'n' },
 		{ "broadcast", no_argument, 0, 'b' },
 		{ "list", no_argument, 0, 'l' },
+        { "json", no_argument, 0, 'j' },
+        { "csv", no_argument, 0, 'c' },
 		{ "range", required_argument, 0, 'r' },
 		{ "help", no_argument, 0, 'h' },
 		{ 0, 0, 0, 0 }
@@ -83,6 +84,7 @@ int main(int argc, char *argv[]) {
 	int bcastsock;
 
 	int list_only = 0;
+	int output_mode = 0;
 
 	ndev = spectool_device_scan(&list);
 
@@ -93,7 +95,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	while (1) {
-		int o = getopt_long(argc, argv, "n:bhr:l",
+		int o = getopt_long(argc, argv, "n:bhrjc:l",
 							long_options, &option_index);
 
 		if (o < 0)
@@ -110,6 +112,10 @@ int main(int argc, char *argv[]) {
 			continue;
 		} else if (o == 'l') {
 			list_only = 1;
+		} else if (o == 'j') {
+			output_mode = 1;
+        } else if (o == 'c') {
+		    output_mode = 2;
 		} else if (o == 'r' && ndev > 0) {
 			if (sscanf(optarg, "%d:%d", &x, &r) != 2) {
 				if (sscanf(optarg, "%d", &r) != 1) {
@@ -176,7 +182,8 @@ int main(int argc, char *argv[]) {
 		}
 
 		printf("Waiting for a broadcast server ID...\n");
-	} else if (neturl != NULL) {
+	}
+	else if (neturl != NULL) {
 		printf("Initializing network connection...\n");
 
 		if (spectool_netcli_init(&sr, neturl, errstr) < 0) {
@@ -190,7 +197,8 @@ int main(int argc, char *argv[]) {
 		}
 
 		printf("Connected to server, waiting for device list...\n");
-	} else if (neturl == NULL) {
+	}
+	else if (neturl == NULL) {
 		if (ndev <= 0) {
 			printf("No spectool devices found, bailing\n");
 			exit(1);
@@ -407,21 +415,65 @@ int main(int argc, char *argv[]) {
 					sb = spectool_phy_getsweep(di);
 					if (sb == NULL)
 						continue;
-					printf("%s: ", spectool_phy_getname(di));
-					for (r = 0; r < sb->num_samples; r++) {
-						// printf("[%d %d %d %d] ", sb->sample_data[r], sb->amp_offset_mdbm, sb->amp_res_mdbm, sb->sample_data[r] * (sb->amp_res_mdbm / 1000) + (sb->amp_offset_mdbm / 1000));
-						printf("%d ", 
-							SPECTOOL_RSSI_CONVERT(sb->amp_offset_mdbm, sb->amp_res_mdbm,
-											   sb->sample_data[r]));
-					}
-					printf("\n");
-					fflush(stdout);
+                    if (output_mode == 0) {
+                        printf("%s: ", spectool_phy_getname(di));
+                        for (r = 0; r < sb->num_samples; r++) {
+                            // printf("[%d %d %d %d] ", sb->sample_data[r], sb->amp_offset_mdbm, sb->amp_res_mdbm, sb->sample_data[r] * (sb->amp_res_mdbm / 1000) + (sb->amp_offset_mdbm / 1000));
+                            printf("%d ",
+                                   SPECTOOL_RSSI_CONVERT(sb->amp_offset_mdbm, sb->amp_res_mdbm,
+                                                         sb->sample_data[r]));
+                        }
+                        printf("\n");
+                        fflush(stdout);
+                    } else if (output_mode == 1) { //json {"device": device_name, "freq_range": [low, high], "sample_res": sample_res, "samples": n_samples, "values": *values}
+                        printf("{\"device\": \"%s\", \"freq_range\": [\"%d%s\",\"%d%s\"], \"sample_res\": \"%0.2f%s\", \"samples\": %d, \"values\": [",
+                               spectool_phy_getname(di),
+                               sb->start_khz > 1000 ?
+                               sb->start_khz / 1000 : sb->start_khz,
+                               sb->start_khz > 1000 ? "MHz" : "KHz",
+                               sb->end_khz > 1000 ? sb->end_khz / 1000 : sb->end_khz,
+                               sb->end_khz > 1000 ? "MHz" : "KHz",
+                               (sb->res_hz / 1000) > 1000 ?
+                               ((float) sb->res_hz / 1000) / 1000 : sb->res_hz / 1000,
+                               (sb->res_hz / 1000) > 1000 ? "MHz" : "KHz",
+                               sb->num_samples);
+                        for (r = 0; r < sb->num_samples; r++) {
+                            // printf("[%d %d %d %d] ", sb->sample_data[r], sb->amp_offset_mdbm, sb->amp_res_mdbm, sb->sample_data[r] * (sb->amp_res_mdbm / 1000) + (sb->amp_offset_mdbm / 1000));
+                            printf("%d",
+                                   SPECTOOL_RSSI_CONVERT(sb->amp_offset_mdbm, sb->amp_res_mdbm,
+                                                         sb->sample_data[r]));
+                            if (r+1 < sb->num_samples){
+                                printf(", ");
+                            }
+                        }
+                        printf("]}\n");
+                        fflush(stdout);
+                    } else if (output_mode == 2) { //csv
+                        printf("%s, %d%s-%d%s, %0.2f%s, %d, ",
+                                spectool_phy_getname(di),
+                                sb->start_khz > 1000 ?
+                                sb->start_khz / 1000 : sb->start_khz,
+                                sb->start_khz > 1000 ? "MHz" : "KHz",
+                                sb->end_khz > 1000 ? sb->end_khz / 1000 : sb->end_khz,
+                                sb->end_khz > 1000 ? "MHz" : "KHz",
+                                (sb->res_hz / 1000) > 1000 ?
+                                ((float) sb->res_hz / 1000) / 1000 : sb->res_hz / 1000,
+                                (sb->res_hz / 1000) > 1000 ? "MHz" : "KHz",
+                                sb->num_samples);
+                        for (r = 0; r < sb->num_samples; r++) {
+                            // printf("[%d %d %d %d] ", sb->sample_data[r], sb->amp_offset_mdbm, sb->amp_res_mdbm, sb->sample_data[r] * (sb->amp_res_mdbm / 1000) + (sb->amp_offset_mdbm / 1000));
+                            printf("%d, ",
+                                   SPECTOOL_RSSI_CONVERT(sb->amp_offset_mdbm, sb->amp_res_mdbm,
+                                                         sb->sample_data[r]));
+                        }
+                        printf("\n");
+                        fflush(stdout);
+                    }
+
 				}
 			} while ((r & SPECTOOL_POLL_ADDITIONAL));
-
 		}
 	}
-
 	return 0;
 }	
 

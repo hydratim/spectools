@@ -16,7 +16,7 @@
 
 #ifndef __SPECTOOL_DEVCONTAINER_H__
 #define __SPECTOOL_DEVCONTAINER_H__
-
+#include "../config.h"
 #include <time.h>
 #include <sys/time.h>
 

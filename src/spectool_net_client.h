@@ -31,7 +31,7 @@
 #include <errno.h>
 #include <stdlib.h>
 
-#include "spectool_container.h"
+#include "drivers/spectool_container.h"
 #include "spectool_net.h"
 
 #define CLI_BUF_SZ				16384

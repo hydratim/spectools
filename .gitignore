@@ -4,7 +4,7 @@ spectool_curses
 spectool_raw
 spectool_net
 .depend
-config.h
+src/config.h
 config.log
 config.status
 Makefile

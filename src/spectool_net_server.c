@@ -34,7 +34,7 @@
 #include <signal.h>
 
 #include "config.h"
-#include "spectool_container.h"
+#include "drivers/spectool_container.h"
 #include "spectool_net.h"
 
 /* Size of the client buffer - a packet should never be this large since
