@@ -426,16 +426,11 @@ int main(int argc, char *argv[]) {
                         printf("\n");
                         fflush(stdout);
                     } else if (output_mode == 1) { //json {"device": device_name, "freq_range": [low, high], "sample_res": sample_res, "samples": n_samples, "values": *values}
-                        printf("{\"device\": \"%s\", \"freq_range\": [\"%d%s\",\"%d%s\"], \"sample_res\": \"%0.2f%s\", \"samples\": %d, \"values\": [",
+                        printf("{\"device\": \"%s\", \"freq_range\": [%d, %d], \"sample_res\": %d, \"samples\": %d, \"values\": [",
                                spectool_phy_getname(di),
-                               sb->start_khz > 1000 ?
-                               sb->start_khz / 1000 : sb->start_khz,
-                               sb->start_khz > 1000 ? "MHz" : "KHz",
-                               sb->end_khz > 1000 ? sb->end_khz / 1000 : sb->end_khz,
-                               sb->end_khz > 1000 ? "MHz" : "KHz",
-                               (sb->res_hz / 1000) > 1000 ?
-                               ((float) sb->res_hz / 1000) / 1000 : sb->res_hz / 1000,
-                               (sb->res_hz / 1000) > 1000 ? "MHz" : "KHz",
+                               sb->start_khz,
+                               sb->end_khz,
+                               sb->res_hz,
                                sb->num_samples);
                         for (r = 0; r < sb->num_samples; r++) {
                             // printf("[%d %d %d %d] ", sb->sample_data[r], sb->amp_offset_mdbm, sb->amp_res_mdbm, sb->sample_data[r] * (sb->amp_res_mdbm / 1000) + (sb->amp_offset_mdbm / 1000));
